@@ -1,0 +1,8 @@
+# 编译生成的文件
+build/
+out/
+ascendc_kernels_bbit
+cceprint/
+npuchk/
+stub_reg.log
+*.log
