@@ -27,6 +27,7 @@
  * - 8个AI Core并行处理，提高吞吐量
  * - 双缓冲机制隐藏内存访问延迟
  */
+#include<string.h>
 #include "kernel_operator.h"
 using namespace AscendC;
 
@@ -231,7 +232,7 @@ public:
             //            i, num_pillars_to_process, pillar_start_idx + i);
             // }
             
-            CopyIn(i);   // 数据搬入：全局内存 -> 本地内存
+            // CopyIn(i);   // 数据搬入：全局内存 -> 本地内存
             Compute(i);  // 计算处理：坐标验证 + 特征写入
             // 注意：内存释放在Compute函数内部完成
         }
@@ -325,14 +326,15 @@ private:
     {
         // ==================== 1. 获取本地数据 ====================
         // 从队列中取出数据，队列会自动同步和管理双缓冲
-        LocalTensor<half> featuresLocal = inQueueFeatures.DeQue<half>();
-        LocalTensor<uint32_t> coordsLocal = inQueueCoords.DeQue<uint32_t>();
+        // LocalTensor<half> featuresLocal = inQueueFeatures.DeQue<half>();
+        // LocalTensor<uint32_t> coordsLocal = inQueueCoords.DeQue<uint32_t>();
+        int32_t current_offset = progress * 4;
         
         // ==================== 2. 解析坐标信息 ====================
         // 从坐标数组中提取关键信息
-        uint32_t batch = coordsLocal.GetValue(0);  // batch索引（通常为0）
-        uint32_t x = coordsLocal.GetValue(2);      // BEV网格x坐标 [0, FEATURE_X-1] (修复：原来是GetValue(1))
-        uint32_t y = coordsLocal.GetValue(1);      // BEV网格y坐标 [0, FEATURE_Y-1] (修复：原来是GetValue(2))
+        uint32_t batch = coordsGm.GetValue(current_offset + 0);  // batch索引（通常为0）
+        uint32_t x = coordsGm.GetValue(current_offset + 2);      // BEV网格x坐标 [0, FEATURE_X-1] (修复：原来是GetValue(1))
+        uint32_t y = coordsGm.GetValue(current_offset + 1);      // BEV网格y坐标 [0, FEATURE_Y-1] (修复：原来是GetValue(2))
         // coordsLocal.GetValue(3) 是保留字段，未使用
         
         // Core 7详细调试：检查最后几个pillar的Compute过程
@@ -419,7 +421,10 @@ private:
         // 关键优化：NHWC格式下，同一位置的64个通道连续存储
         // 一次DataCopy(128字节)替代64次SetValue操作，性能提升显著
         // 这是从NCHW改为NHWC格式的主要收益
-        DataCopy(spatialFeaturesGm[base_offset], featuresLocal, PILLAR_FEATURE_SIZE);
+        // DataCopy(spatialFeaturesGm[base_offset], pillarFeaturesGm[progress * PILLAR_FEATURE_SIZE], PILLAR_FEATURE_SIZE);
+        for (int32_t i = 0; i < PILLAR_FEATURE_SIZE; i++) {
+            spatialFeaturesGm.SetValue(base_offset + i, pillarFeaturesGm.GetValue(progress * PILLAR_FEATURE_SIZE + i));
+        }
         
         // if (is_core7_debug) {
         //     printf("Core 7 COMPUTE: DataCopy write completed successfully for progress %d\n", progress);
@@ -433,8 +438,8 @@ private:
         
         // ==================== 10. 释放本地内存资源 ====================
         // 处理完成，释放本地内存供下一个pillar使用
-        inQueueFeatures.FreeTensor(featuresLocal);
-        inQueueCoords.FreeTensor(coordsLocal);
+        // inQueueFeatures.FreeTensor(featuresLocal);
+        // inQueueCoords.FreeTensor(coordsLocal);
     }
     
     /**
