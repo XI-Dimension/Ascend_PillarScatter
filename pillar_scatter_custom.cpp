@@ -7,8 +7,8 @@ constexpr int32_t PILLAR_FEATURE_SIZE = 64;           // 每个pillar的特征�
 constexpr int32_t MAX_PILLARS_PER_CORE = 2048;        // 每个核心处理的最大pillar数
 constexpr int32_t USE_CORE_NUM = 8;                   // 使用的核心数
 constexpr int32_t BUFFER_NUM = 2;                     // 双缓冲
-constexpr int32_t FEATURE_X = 720;                    // BEV特征图宽度 (nx)
-constexpr int32_t FEATURE_Y = 720;                    // BEV特征图高度 (ny)
+constexpr int32_t FEATURE_X = 1024;                    // BEV特征图宽度 (nx)
+constexpr int32_t FEATURE_Y = 1024;                    // BEV特征图高度 (ny)
 
 // 控制调试输出的开关
 // constexpr bool ENABLE_DEBUG_PRINT = false;  // 关闭调试输出，提升性能
@@ -158,3 +158,13 @@ extern "C" __global__ __aicore__ void pillar_scatter_custom(GM_ADDR pillar_featu
     op.Init(pillar_features, coords, params, spatial_features);  // 初始化和数据分片
     op.Process();  // 执行主要的scatter操作
 }
+
+#ifndef ASCENDC_CPU_DEBUG
+void pillar_scatter_do(uint32_t blockDim, void *stream, GM_ADDR pillar_features, 
+                                                            GM_ADDR coords, 
+                                                            GM_ADDR params, 
+                                                            GM_ADDR spatial_features)
+{
+    pillar_scatter_custom<<<blockDim, nullptr, stream>>>(pillar_features, coords, params, spatial_features);
+}
+#endif

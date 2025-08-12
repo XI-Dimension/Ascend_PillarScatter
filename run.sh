@@ -16,6 +16,10 @@ LONG=run-mode:,soc-version:,install-path:,build-type:,install-prefix:,
 OPTS=$(getopt -a --options $SHORT --longoptions $LONG -- "$@")
 eval set -- "$OPTS"
 
+RUN_MODE="npu"  # Set default RUN_MODE to npu
+SOC_VERSION="Ascend310P1"
+TOOLKIT_VERSION="8.0.RC2"  # Default toolkit version
+
 # 处理命令行参数，设置运行模式、芯片型号等
 while :; do
     case "$1" in
@@ -76,6 +80,8 @@ else
         _ASCEND_INSTALL_PATH=/usr/local/Ascend/ascend-toolkit/latest
     fi
 fi
+
+export CPLUS_INCLUDE_PATH=/usr/local/Ascend/ascend-toolkit/${TOOLKIT_VERSION}/toolkit/toolchain/hcc/aarch64-target-linux-gnu/include/c++/7.3.0:/usr/local/Ascend/ascend-toolkit/${TOOLKIT_VERSION}/toolkit/toolchain/hcc/aarch64-target-linux-gnu/include/c++/7.3.0/aarch64-target-linux-gnu:$CPLUS_INCLUDE_PATH
 
 # 设置环境变量，指向CANN工具包
 export ASCEND_TOOLKIT_HOME=${_ASCEND_INSTALL_PATH}

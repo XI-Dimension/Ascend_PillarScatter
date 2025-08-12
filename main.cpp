@@ -41,8 +41,8 @@ int32_t main(int32_t argc, char *argv[])
     
     // PillarScatter参数配置
     constexpr int32_t PILLAR_FEATURE_SIZE = 64;
-    constexpr int32_t FEATURE_X = 720;
-    constexpr int32_t FEATURE_Y = 720;
+    constexpr int32_t FEATURE_X = 1024;
+    constexpr int32_t FEATURE_Y = 1024;
     
     // 根据输入文件大小自动计算pillar数量
     const char* pillarFeaturesFile = "./input/OpTest_scatter_input_x.bin";
